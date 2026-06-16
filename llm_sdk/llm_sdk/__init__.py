@@ -13,7 +13,7 @@ import os
 logging.set_verbosity_error()  # keep the console clean
 
 
-class  Small_LLM_Model:
+class Small_LLM_Model:
     """Utility class wrapping a lightweight Hugging Face causal-LM for fast, low-memory experimentation.
 
     Parameters
@@ -89,35 +89,13 @@ class  Small_LLM_Model:
 
     def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:
         """
-        Given a list of input token ids, return the raw logits (no softmax)
-        for the next token using KV cache.
+        Given a list of input token ids, return the raw logits (no softmax) for the next token.
         """
+        input_tensor = torch.tensor([input_ids], device=self._device, dtype=torch.long)
         with torch.no_grad():
-            # First token
-            input_tensor = torch.tensor([[input_ids[0]]], device=self._device, dtype=torch.long)
-
-            out = self._model(
-                input_ids=input_tensor,
-                use_cache=True
-            )
-
-            past_key_values = out.past_key_values
-
-            # Feed remaining tokens one by one using cache
-            for token_id in input_ids[1:]:
-                input_tensor = torch.tensor([[token_id]], device=self._device, dtype=torch.long)
-
-                out = self._model(
-                    input_ids=input_tensor,
-                    past_key_values=past_key_values,
-                    use_cache=True
-                )
-
-                past_key_values = out.past_key_values
-
-            # Logits for next token prediction
-            logits = out.logits[0, -1].tolist()
-
+            out = self._model(input_ids=input_tensor)
+        # Get logits for the last token in the sequence for the batch (batch size 1)
+        logits = out.logits[0, -1].tolist()
         return [float(x) for x in logits]
 
 

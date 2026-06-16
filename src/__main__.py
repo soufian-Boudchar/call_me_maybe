@@ -1,12 +1,19 @@
+from parsing.parser import prompts_parser, funcs_parser, check_flags
 from llm_sdk import Small_LLM_Model
-from parsing import parser
 
 
-prompt = "What is the sum of 10 and 20"
-llm = Small_LLM_Model()
-
-input_ids = llm.encode(prompt).squeeze().tolist()
-logits = llm.get_logits_from_input_ids(input_ids)
 
 
-print(logits)
+def main() -> None:
+    args = check_flags()
+    prompts = prompts_parser(args)
+    funcs = funcs_parser(args)
+    
+    print(prompts[0])
+    # for i in prompts:
+    #     print()
+    
+    
+    
+if __name__ == "__main__":
+    main()

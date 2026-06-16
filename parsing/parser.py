@@ -1,6 +1,6 @@
 import json
 from pydantic import BaseModel, ValidationError
-from typing import Dict, Any
+from typing import Dict, Any, List
 import argparse
 
 
@@ -21,7 +21,7 @@ class FunctionCallResult(BaseModel):
     parameters: Dict[str, Any]
 
 
-def check_flags():
+def check_flags() -> Dict[str, str]:
     parser = argparse.ArgumentParser()
     parser.add_argument('--functions_definition',
                         type=str,
@@ -38,32 +38,44 @@ def check_flags():
 
     args = parser.parse_args()
     return {
-        "func_defs": args.func_def,
+        "funcs_def": args.func_def,
         "input": args.input,
         "output": args.output
     }
 
-
-def parser():
-    parameters = check_flags()
+def prompts_parser(prompts_path: Dict[str, str]) -> List[Prompt]:
+    parameters = prompts_path
+    try:
+        with open(parameters['input'], 'r') as f:
+            prompts = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"{e}")
+        exit(1)
 
     try:
-        with open(parameters['func_defs'], "r") as f:
+        prompts = [Prompt.model_validate(item) for item in prompts]
+    except ValidationError:
+        print("[ERROR] Invalid prompts input!")
+        exit(1)
+        
+    return prompts
+    
+
+def funcs_parser(funcs_path: Dict[str, str]) -> List[FunctionDefinition]:
+    parameters = funcs_path
+
+    try:
+        with open(parameters['funcs_def'], "r") as f:
             func_def = json.load(f)
-        with open(parameters['input'], 'r') as f:
-            prompts_data = json.load(f)
 
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"{e}")
         exit(1)
+
     try:
         funcs = [FunctionDefinition.model_validate(item) for item in func_def]
     except ValidationError:
         print("[ERROR] Invalid funcion definition:")
-    try:
-        prompts = [Prompt.model_validate(item) for item in prompts_data]
-    except ValidationError:
-        print("[ERROR] Invalid prompts input!")
-
-
-parser()
+        exit(1)
+        
+    return funcs
